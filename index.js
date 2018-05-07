@@ -20,6 +20,9 @@ module.exports = {
     configurationKeys.forEach((key) => {
       if (key === 'proxy' && conf.proxy) {
         clientConfig.httpOptions = { agent: proxy(conf.proxy) };
+      // this condition is for functions using the raw SDK and need HTTP proxies
+      } else if (key === 'sdkProxy' && conf.sdkProxy) {
+        awsConf.httpOptions = { agent: proxy(conf.sdkProxy) };
       } else if (key in conf) {
         awsConf[key] = conf[key];
       }
