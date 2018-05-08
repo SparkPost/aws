@@ -14,7 +14,8 @@ module.exports = {
       'proxy',
       'maxRetries',
       'retryDelayOptions',
-      'apiVersion'
+      'apiVersion',
+      'sdkProxy'
     ];
 
     configurationKeys.forEach((key) => {
