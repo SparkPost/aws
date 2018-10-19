@@ -248,6 +248,9 @@ describe('SQS Utilities', function() {
     });
 
     it('should send s3-extended messages when payload size is >=256kb', function() {
+      const queueSize = 5;
+      const partSize = 1024;
+
       let payload;
 
       for (let index = 0; index < 300000; index++) {
@@ -260,12 +263,21 @@ describe('SQS Utilities', function() {
       Math.random.returns(0.5);
 
       return sqsInstance
-        .extendedSend({ queueName: 'queue', s3Bucket: 'test', payload })
+        .extendedSend({
+          queueName: 'queue',
+          s3Bucket: 'test',
+          payload,
+          queueSize,
+          partSize
+        })
         .then((res) => {
           expect(res.extended).to.equal(true);
-          expect(s3Mock.upload).to.have.been.calledWithMatch({
-            Bucket: 'test'
-          });
+          expect(s3Mock.upload).to.have.been.calledWithMatch(
+            {
+              Bucket: 'test'
+            },
+            { queueSize, partSize }
+          );
           expect(s3Mock.upload.args[0][0].Key).to.match(
             /25\/[0-9A-F]{8}-[0-9A-F]{4}-4[0-9A-F]{3}-[89AB][0-9A-F]{3}-[0-9A-F]{12}\.json\.gz/i
           );
