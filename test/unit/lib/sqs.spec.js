@@ -249,7 +249,7 @@ describe('SQS Utilities', function() {
 
     it('should send s3-extended messages when payload size is >=256kb', function() {
       const queueSize = 5;
-      const partSize = 1024;
+      const partSize = 1024 * 1024 * 8;
 
       let payload;
 
