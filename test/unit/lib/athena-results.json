@@ -1,0 +1,59 @@
+{
+  "ResultSet": {
+    "Rows": [
+      {
+        "Data": [
+          {
+            "VarCharValue": "aBoolean"
+          },
+          {
+            "VarCharValue": "aVarchar"
+          },
+          {
+            "VarCharValue": "anInteger"
+          }
+        ]
+      },
+      {
+        "Data": [
+          {
+            "VarCharValue": "true"
+          },
+          {
+            "VarCharValue": "giraffe"
+          },
+          {
+            "VarCharValue": "400"
+          }
+        ]
+      },
+      {
+        "Data": [
+          {
+            "VarCharValue": "false"
+          },
+          {},
+          {
+            "VarCharValue": "603"
+          }
+        ]
+      }
+    ],
+    "ResultSetMetadata": {
+      "ColumnInfo": [
+        {
+          "Name": "aBoolean",
+          "Type": "boolean"
+        },
+        {
+          "Name": "aVarchar",
+          "Type": "varchar"
+        },
+        {
+          "Name": "anInteger",
+          "Type": "integer"
+        }
+      ]
+    }
+  }
+}
