@@ -26,7 +26,7 @@ describe('SSM tests', function() {
       }
     };
     SSM = proxyquire('../../../lib/ssm', {
-      './client-config': configMock,
+      '../client-config': configMock,
       'aws-sdk': awsMock
     });
   });

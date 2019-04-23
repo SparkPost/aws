@@ -27,7 +27,7 @@ describe('CloudSearch', function() {
       }
     };
     CloudSearch = proxyquire('../../../lib/cloudsearch', {
-      './client-config': configMock,
+      '../client-config': configMock,
       'aws-sdk': awsMock
     });
   });
