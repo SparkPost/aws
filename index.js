@@ -27,10 +27,11 @@ module.exports = {
 
     AWS.config.update(awsConf);
   },
+  Athena: require('./lib/athena'),
   DynamoDB: require('./lib/dynamo'),
+  CloudSearch: require('./lib/cloudsearch'),
+  SDK: AWS,
   SNS: require('./lib/sns'),
   SQS: require('./lib/sqs'),
-  CloudSearch: require('./lib/cloudsearch'),
-  SSM: require('./lib/ssm'),
-  SDK: AWS
+  SSM: require('./lib/ssm')
 };

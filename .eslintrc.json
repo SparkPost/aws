@@ -1,3 +1,11 @@
 {
-  "extends": "sparkpost/api"
+  "extends": "sparkpost/api",
+  "overrides": [
+    {
+      "files": ["**/*.js"],
+      "rules": {
+        "complexity": ["error", { "max": 10 }]
+      }
+    }
+  ]
 }
