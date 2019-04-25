@@ -43,11 +43,11 @@ describe('Athena', function() {
       }
     };
 
-    const Athena = proxyquire('../../../lib/athena', {
+    const athena = proxyquire('../../../lib/athena', {
       'aws-sdk': mockAws
     });
 
-    client = new Athena({
+    client = athena({
       database: 'awsAthenaDatabase',
       s3Bucket: 'awsS3Bucket'
     });

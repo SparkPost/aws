@@ -5,7 +5,7 @@ A simplified, promise-based library for querying [Athena](https://docs.aws.amazo
 ## Get a client
 
 ```
-const athenaClient = new require('@sparkpost/aws').Athena( opts )
+const athenaClient = require('@sparkpost/aws').Athena( opts )
 ```
 
 ### Configuration Options
