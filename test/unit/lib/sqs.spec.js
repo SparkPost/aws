@@ -81,6 +81,15 @@ describe('SQS Utilities', function() {
     );
   });
 
+  it('should use the specified endpoint in queue names', function() {
+    const endpointInstance = sqs(
+      _.merge(testConfig, { sqsEndpoint: 'some.other.endpoint' })
+    );
+    expect(endpointInstance.getQueueURL('webhooks')).to.equal(
+      'https://some.other.endpoint/Stark/etl_webhooks_ending'
+    );
+  });
+
   it('should default prefix and suffix to the empty string name', function() {
     delete testConfig.queuePrefix;
     delete testConfig.queueSuffix;
