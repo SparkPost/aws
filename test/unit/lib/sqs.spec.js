@@ -62,6 +62,11 @@ describe('SQS Utilities', function() {
         constructor() {
           return s3Mock;
         }
+      },
+      Endpoint: class {
+        constructor() {
+          return 'this is the endpoint';
+        }
       }
     };
 
