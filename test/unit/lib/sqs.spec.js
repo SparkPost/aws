@@ -37,7 +37,8 @@ describe('SQS Utilities', function() {
       changeMessageVisibility: sinon.stub().yields(null, result),
       purgeQueue: sinon.stub().yields(null, result),
       deleteMessageBatch: sinon.stub().yields(null, result),
-      receiveMessage: sinon.stub().yields(null, result)
+      receiveMessage: sinon.stub().yields(null, result),
+      listQueues: sinon.stub().yields(null, result)
     };
 
     s3Mock = {
@@ -641,6 +642,15 @@ describe('SQS Utilities', function() {
       return sqsInstance.maybeRetrieveFromS3(message).then(({ body }) => {
         expect(body).to.deep.equal({ test: true });
         expect(s3Mock.getObjectAsync).not.to.have.been.called;
+      });
+    });
+  });
+
+  describe('listQueues', function() {
+    it('should call listQueues', function() {
+      return sqsInstance.listQueues().then((result) => {
+        expect(result).to.equal('result');
+        expect(sqsMock.listQueues).to.have.been.called;
       });
     });
   });
