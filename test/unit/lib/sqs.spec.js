@@ -8,7 +8,6 @@ const sinon = require('sinon');
 const _ = require('lodash');
 const zlib = require('zlib');
 const compress = zlib.gzipSync;
-
 chai.use(require('chai-sinon'));
 chai.use(require('chai-as-promised'));
 
@@ -20,6 +19,7 @@ describe('SQS Utilities', function() {
     ,s3Result
     ,result
     ,testConfig
+    ,s3Config
     ,awsMock
     ,queueUrl;
 
@@ -60,7 +60,8 @@ describe('SQS Utilities', function() {
         }
       },
       S3: class {
-        constructor() {
+        constructor(config) {
+          s3Config = config;
           return s3Mock;
         }
       },
@@ -88,12 +89,15 @@ describe('SQS Utilities', function() {
   });
 
   it('should use the specified endpoint in queue names', function() {
-    const endpointInstance = sqs(
-      _.merge(testConfig, { sqsEndpoint: 'some.other.endpoint' })
-    );
+    const endpointInstance = sqs({
+      ...testConfig,
+      ...{ sqsEndpoint: 'some.other.endpoint' }
+    });
     expect(endpointInstance.getQueueURL('webhooks')).to.equal(
       'https://some.other.endpoint/Stark/etl_webhooks_ending'
     );
+    // S3 should not be using the endpoint
+    expect(s3Config).to.not.have.keys(['endpoint']);
   });
 
   it('should default prefix and suffix to the empty string name', function() {
