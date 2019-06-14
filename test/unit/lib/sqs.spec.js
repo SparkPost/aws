@@ -320,6 +320,32 @@ describe('SQS Utilities', function() {
         });
     });
 
+    it('should strip S3 attributes when sending sqs-only messages and size is <256kb', function() {
+      const payload = 'look-ma-its-a-string';
+      return sqsInstance
+        .extendedSend({
+          queueName: 'queue',
+          s3Bucket: 'test',
+          payload,
+          attrs: {
+            foo: 'bar',
+            EXTENDED_S3_KEY: 'imakey',
+            EXTENDED_S3_BUCKET: 'imabucket'
+          }
+        })
+        .then((res) => {
+          expect(res).to.deep.equal({ res: result, extended: false });
+          expect(sqsMock.sendMessage.callCount).to.equal(1);
+          expect(sqsMock.sendMessage.args[0][0]).to.deep.equal({
+            MessageBody: compress(payload, {
+              level: zlib.constants.Z_NO_COMPRESSION
+            }).toString('base64'),
+            QueueUrl: queueUrl,
+            MessageAttributes: { foo: 'bar' }
+          });
+        });
+    });
+
     it('should send s3-extended messages when payload size is >=256kb', function() {
       let payload;
 
