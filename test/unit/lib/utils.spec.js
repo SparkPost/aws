@@ -70,6 +70,17 @@ describe('AWS Library utilities', function() {
     });
   });
 
+  it('should not mutate the passed in config when setting http agent', function() {
+    const awsMock = sinon.stub();
+    // bypassProxy shouldn't be passed to the AWS constructor
+    const config = { bypassProxy: 'a value' };
+    utils.setHttpAgent(config, true, awsMock);
+    expect(awsMock).to.have.been.calledWith({
+      httpOptions: { agent: sinon.match.any }
+    });
+    expect(config).to.deep.equal({ bypassProxy: 'a value' });
+  });
+
   it('should default to not setting up http keepalives', function() {
     const awsMock = sinon.stub();
 
