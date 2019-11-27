@@ -4,23 +4,22 @@ const chai = require('chai');
 const sinon = require('sinon');
 const expect = chai.expect;
 const proxyquire = require('proxyquire');
+const _ = require('lodash');
 
 chai.use(require('sinon-chai'));
 chai.use(require('chai-as-promised'));
 
 describe('Athena', function() {
-  let client, mockAthena, mockAthenaConstructor, mockAws;
+  let client, mockAthena, mockAthenaConstructor, mockAws, athenaResults;
 
   beforeEach(function() {
-    const athenaResults = require('./athena-results');
-
+    athenaResults = require('./athena-results');
     mockAthenaConstructor = sinon.stub();
 
     mockAthena = {
-      startQueryExecution: sinon
-        .stub()
-        .returns({ promise: sinon.stub().resolves('some query info') }),
-
+      startQueryExecution: sinon.stub().returns({
+        promise: sinon.stub().resolves({ QueryExecutionId: 'some query id' })
+      }),
       getQueryExecution: sinon.stub().returns({
         promise: sinon.stub().resolves({
           QueryExecution: {
@@ -28,10 +27,9 @@ describe('Athena', function() {
           }
         })
       }),
-
-      getQueryResults: sinon
-        .stub()
-        .returns({ promise: sinon.stub().resolves(athenaResults) })
+      getQueryResults: sinon.stub().returns({
+        promise: sinon.stub().resolves(_.cloneDeep(athenaResults))
+      })
     };
 
     mockAws = {
@@ -67,14 +65,123 @@ describe('Athena', function() {
         }
       });
       expect(mockAthena.getQueryExecution).to.have.callCount(1);
-      expect(mockAthena.getQueryExecution).to.have.been.calledWith(
-        'some query info'
-      );
+      expect(mockAthena.getQueryExecution).to.have.been.calledWith({
+        QueryExecutionId: 'some query id'
+      });
       expect(mockAthena.getQueryResults).to.have.callCount(1);
-      expect(mockAthena.getQueryResults).to.have.been.calledWith(
-        'some query info'
-      );
+      expect(mockAthena.getQueryResults).to.have.been.calledWith({
+        QueryExecutionId: 'some query id'
+      });
       expect(result).to.deep.equal([
+        {
+          aBoolean: true,
+          aVarchar: 'giraffe',
+          anInteger: 400
+        },
+        {
+          aBoolean: false,
+          aVarchar: null,
+          anInteger: 603
+        }
+      ]);
+    });
+  });
+
+  it('should pass through query options ', function() {
+    return client
+      .query('some real SQL', { NextToken: 'hello' })
+      .then((result) => {
+        expect(mockAthenaConstructor).to.have.been.calledWith({});
+        expect(mockAthena.startQueryExecution).to.have.callCount(1);
+        expect(mockAthena.startQueryExecution).to.have.been.calledWith({
+          QueryExecutionContext: {
+            Database: 'awsAthenaDatabase'
+          },
+          QueryString: 'some real SQL',
+          ResultConfiguration: {
+            OutputLocation: 's3://awsS3Bucket'
+          }
+        });
+        expect(mockAthena.getQueryExecution).to.have.callCount(1);
+        expect(mockAthena.getQueryExecution).to.have.been.calledWith({
+          QueryExecutionId: 'some query id'
+        });
+        expect(mockAthena.getQueryResults).to.have.callCount(1);
+        expect(mockAthena.getQueryResults).to.have.been.calledWith({
+          QueryExecutionId: 'some query id',
+          NextToken: 'hello'
+        });
+        expect(result).to.deep.equal([
+          {
+            aBoolean: true,
+            aVarchar: 'giraffe',
+            anInteger: 400
+          },
+          {
+            aBoolean: false,
+            aVarchar: null,
+            anInteger: 603
+          }
+        ]);
+      });
+  });
+
+  it('should recursively pull query results until all results retrieved', function() {
+    const athenaResultsFirstPage = _.cloneDeep(athenaResults);
+    const athenaResultsNthPage = _.cloneDeep(athenaResults);
+    athenaResultsNthPage.ResultSet.Rows.shift();
+
+    mockAthena.getQueryResults.onCall(0).returns({
+      promise: sinon
+        .stub()
+        .resolves({ ...athenaResultsFirstPage, NextToken: 'hello' })
+    });
+    mockAthena.getQueryResults.onCall(1).returns({
+      promise: sinon
+        .stub()
+        .resolves({ ...athenaResultsNthPage, NextToken: 'hi' })
+    });
+    mockAthena.getQueryResults.onCall(2).returns({
+      promise: sinon.stub().resolves(athenaResultsNthPage)
+    });
+
+    return client.query('some real SQL').then((result) => {
+      expect(mockAthenaConstructor).to.have.been.calledWith({});
+      expect(mockAthena.startQueryExecution).to.have.callCount(1);
+      expect(mockAthena.getQueryExecution).to.have.callCount(1);
+      expect(mockAthena.getQueryResults).to.have.callCount(3);
+      expect(mockAthena.getQueryResults).to.have.been.calledWith({
+        QueryExecutionId: 'some query id',
+        NextToken: 'hello'
+      });
+      expect(mockAthena.getQueryResults).to.have.been.calledWith({
+        QueryExecutionId: 'some query id',
+        NextToken: 'hi'
+      });
+      expect(mockAthena.getQueryResults).to.have.been.calledWith({
+        QueryExecutionId: 'some query id'
+      });
+      expect(result).to.deep.equal([
+        {
+          aBoolean: true,
+          aVarchar: 'giraffe',
+          anInteger: 400
+        },
+        {
+          aBoolean: false,
+          aVarchar: null,
+          anInteger: 603
+        },
+        {
+          aBoolean: true,
+          aVarchar: 'giraffe',
+          anInteger: 400
+        },
+        {
+          aBoolean: false,
+          aVarchar: null,
+          anInteger: 603
+        },
         {
           aBoolean: true,
           aVarchar: 'giraffe',
