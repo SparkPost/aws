@@ -238,7 +238,11 @@ describe('SQS Utilities', function() {
           messageDeduplicationId: '123'
         })
         .then((res) => {
-          expect(res).to.deep.equal({ res: result, extended: false });
+          expect(res).to.deep.equal({
+            res: result,
+            extended: false,
+            key: false
+          });
           expect(sqsMock.sendMessage.callCount).to.equal(1);
           expect(sqsMock.sendMessage.args[0][0]).to.deep.equal({
             MessageBody: compress(JSON.stringify(payload), {
@@ -264,7 +268,11 @@ describe('SQS Utilities', function() {
           attrs: { foo: 'bar' }
         })
         .then((res) => {
-          expect(res).to.deep.equal({ res: result, extended: false });
+          expect(res).to.deep.equal({
+            res: result,
+            extended: false,
+            key: false
+          });
           expect(sqsMock.sendMessage.callCount).to.equal(1);
           expect(sqsMock.sendMessage.args[0][0]).to.deep.equal({
             MessageBody: compress(payload).toString('base64'),
@@ -285,7 +293,11 @@ describe('SQS Utilities', function() {
           attrs: { foo: 'bar' }
         })
         .then((res) => {
-          expect(res).to.deep.equal({ res: result, extended: false });
+          expect(res).to.deep.equal({
+            res: result,
+            extended: false,
+            key: false
+          });
           expect(sqsMock.sendMessage.callCount).to.equal(1);
           expect(sqsMock.sendMessage.args[0][0]).to.deep.equal({
             MessageBody: compress(JSON.stringify(payload), {
@@ -308,7 +320,11 @@ describe('SQS Utilities', function() {
           attrs: { foo: 'bar' }
         })
         .then((res) => {
-          expect(res).to.deep.equal({ res: result, extended: false });
+          expect(res).to.deep.equal({
+            res: result,
+            extended: false,
+            key: false
+          });
           expect(sqsMock.sendMessage.callCount).to.equal(1);
           expect(sqsMock.sendMessage.args[0][0]).to.deep.equal({
             MessageBody: compress(payload, {
@@ -334,7 +350,11 @@ describe('SQS Utilities', function() {
           }
         })
         .then((res) => {
-          expect(res).to.deep.equal({ res: result, extended: false });
+          expect(res).to.deep.equal({
+            res: result,
+            extended: false,
+            key: false
+          });
           expect(sqsMock.sendMessage.callCount).to.equal(1);
           expect(sqsMock.sendMessage.args[0][0]).to.deep.equal({
             MessageBody: compress(payload, {
