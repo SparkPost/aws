@@ -382,6 +382,9 @@ describe('SQS Utilities', function() {
         .extendedSend({ queueName: 'queue', s3Bucket: 'test', payload })
         .then((res) => {
           expect(res.extended).to.equal(true);
+          expect(res.key).to.match(
+            /25\/[0-9A-F]{8}-[0-9A-F]{4}-4[0-9A-F]{3}-[89AB][0-9A-F]{3}-[0-9A-F]{12}\.json\.gz/i
+          );
           expect(s3Mock.upload).to.have.been.calledWithMatch({
             Bucket: 'test'
           });
