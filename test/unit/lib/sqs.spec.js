@@ -414,7 +414,7 @@ describe('SQS Utilities', function() {
         });
     });
 
-    it('should send as sqs messages when payload size is >=256kb & compresses to <=256kb', function() {
+    it('should send as sqs message when payload size is >=256kb & compresses to <=256kb', function() {
       // Expecting payload size of 293348 bytes to compress down to ~198416 bytes
       const expected_compress_level = zlib.constants.Z_DEFAULT_COMPRESSION;
       let payload;
@@ -456,10 +456,10 @@ describe('SQS Utilities', function() {
         });
     });
 
-    it('should send as sqs messages and not compress if compressed payload <=64kb', function() {
+    it('should send as sqs message and compress if payload barely >(64kb - 50b)', function() {
       // Payload of ~65488 bytes should get compressed to ~112 bytes
       const expected_compress_level = zlib.constants.Z_DEFAULT_COMPRESSION;
-      const payload = _.repeat('a', 49115); //repeat to ~65488 bytes ()> 65486 limit)
+      const payload = _.repeat('a', 49115); //repeat to ~65488 bytes (> 65486 limit)
 
       sinon.stub(Math, 'random');
       Math.random.returns(0.5);
