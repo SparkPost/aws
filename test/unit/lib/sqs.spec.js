@@ -413,6 +413,84 @@ describe('SQS Utilities', function() {
           );
         });
     });
+
+    it('should send as sqs message when payload size is >=256kb & compresses to <=256kb', function() {
+      // Expecting payload size of 293348 bytes to compress down to ~198416 bytes
+      const expected_compress_level = zlib.constants.Z_DEFAULT_COMPRESSION;
+      let payload;
+
+      for (let index = 0; index < 220000; index++) {
+        payload += Math.random()
+          .toString(36)
+          .substr(2, 1);
+      } // Payload size = 293348
+
+      sinon.stub(Math, 'random');
+      Math.random.returns(0.5);
+
+      return sqsInstance
+        .extendedSend({
+          queueName: 'queue',
+          s3Bucket: 'test',
+          payload,
+          attrs: {
+            foo: 'bar',
+            EXTENDED_S3_KEY: 'imakey',
+            EXTENDED_S3_BUCKET: 'imabucket'
+          }
+        })
+        .then((res) => {
+          expect(res).to.deep.equal({
+            res: result,
+            extended: false,
+            key: false
+          }); // Expecting to send via SQS only
+          expect(sqsMock.sendMessage.callCount).to.equal(1);
+          expect(sqsMock.sendMessage.args[0][0]).to.deep.equal({
+            MessageBody: compress(payload, {
+              level: expected_compress_level
+            }).toString('base64'),
+            QueueUrl: queueUrl,
+            MessageAttributes: { foo: 'bar' }
+          }); // Expecting to be compressed (>64kb)
+        });
+    });
+
+    it('should send as sqs message and compress if payload barely >(64kb - 50b)', function() {
+      // Payload of ~65488 bytes should get compressed to ~112 bytes
+      const expected_compress_level = zlib.constants.Z_DEFAULT_COMPRESSION;
+      const payload = _.repeat('a', 49115); //repeat to ~65488 bytes (> 65486 limit)
+
+      sinon.stub(Math, 'random');
+      Math.random.returns(0.5);
+
+      return sqsInstance
+        .extendedSend({
+          queueName: 'queue',
+          s3Bucket: 'test',
+          payload,
+          attrs: {
+            foo: 'bar',
+            EXTENDED_S3_KEY: 'imakey',
+            EXTENDED_S3_BUCKET: 'imabucket'
+          }
+        })
+        .then((res) => {
+          expect(res).to.deep.equal({
+            res: result,
+            extended: false,
+            key: false
+          }); // Expecting to send via SQS only
+          expect(sqsMock.sendMessage.callCount).to.equal(1);
+          expect(sqsMock.sendMessage.args[0][0]).to.deep.equal({
+            MessageBody: compress(payload, {
+              level: expected_compress_level
+            }).toString('base64'),
+            QueueUrl: queueUrl,
+            MessageAttributes: { foo: 'bar' }
+          }); // Expecting to be compressed (>64kb - 50bytes)
+        });
+    });
   });
 
   describe('extendedRetrieve', function() {
