@@ -64,7 +64,8 @@ describe('Athena', function() {
         QueryString: 'some real SQL',
         ResultConfiguration: {
           OutputLocation: 's3://awsS3Bucket'
-        }
+        },
+        WorkGroup: 'primary'
       });
       expect(mockAthena.getQueryExecution).to.have.callCount(1);
       expect(mockAthena.getQueryExecution).to.have.been.calledWith({
@@ -104,7 +105,8 @@ describe('Athena', function() {
           QueryString: 'some real SQL',
           ResultConfiguration: {
             OutputLocation: 's3://awsS3Bucket'
-          }
+          },
+          WorkGroup: 'primary'
         });
         expect(mockAthena.getQueryExecution).to.have.callCount(1);
         expect(mockAthena.getQueryExecution).to.have.been.calledWith({
