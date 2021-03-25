@@ -10,7 +10,7 @@ chai.use(require('sinon-chai'));
 chai.use(require('chai-as-promised'));
 
 describe('Athena', function() {
-  let client, mockAthena, mockAthenaConstructor, mockAws, athenaResults;
+  let client, athena, mockAthena, mockAthenaConstructor, mockAws, athenaResults;
 
   beforeEach(function() {
     athenaResults = require('./athena-results');
@@ -41,7 +41,7 @@ describe('Athena', function() {
       }
     };
 
-    const athena = proxyquire('../../../lib/athena', {
+    athena = proxyquire('../../../lib/athena', {
       'aws-sdk': mockAws
     });
 
@@ -66,6 +66,50 @@ describe('Athena', function() {
           OutputLocation: 's3://awsS3Bucket'
         },
         WorkGroup: 'primary'
+      });
+      expect(mockAthena.getQueryExecution).to.have.callCount(1);
+      expect(mockAthena.getQueryExecution).to.have.been.calledWith({
+        QueryExecutionId: 'some query id'
+      });
+      expect(mockAthena.getQueryResults).to.have.callCount(1);
+      expect(mockAthena.getQueryResults).to.have.been.calledWith({
+        QueryExecutionId: 'some query id'
+      });
+      expect(result).to.deep.equal([
+        {
+          aBoolean: true,
+          aVarchar: 'giraffe',
+          anInteger: 400
+        },
+        {
+          aBoolean: false,
+          aVarchar: null,
+          anInteger: 603
+        }
+      ]);
+    });
+  });
+
+  it('should use the specified workgroup, query athena and make the results into JSON', function() {
+    client = athena({
+      database: 'awsAthenaDatabase',
+      s3Bucket: 'awsS3Bucket',
+      workgroup: 'transmissions'
+    });
+    return client.query('some real SQL').then((result) => {
+      expect(mockAthenaConstructor).to.have.been.calledWith({
+        httpOptions: { agent: 'my-proxy-server' }
+      });
+      expect(mockAthena.startQueryExecution).to.have.callCount(1);
+      expect(mockAthena.startQueryExecution).to.have.been.calledWith({
+        QueryExecutionContext: {
+          Database: 'awsAthenaDatabase'
+        },
+        QueryString: 'some real SQL',
+        ResultConfiguration: {
+          OutputLocation: 's3://awsS3Bucket'
+        },
+        WorkGroup: 'transmissions'
       });
       expect(mockAthena.getQueryExecution).to.have.callCount(1);
       expect(mockAthena.getQueryExecution).to.have.been.calledWith({
