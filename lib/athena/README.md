@@ -10,10 +10,11 @@ const athenaClient = require('@sparkpost/aws').Athena( opts )
 
 ### Configuration Options
 
-| Property | Description                                                                                             |
-|----------|---------------------------------------------------------------------------------------------------------|
-| database | The Athena database to query. Used for `QueryExecutionContext.Database` in the AWS SDK.                 |
-| s3Bucket | The S3 bucket in which to store results. Used for  `ResultConfiguration.OutputLocation` in the AWS SDK. |
+| Property  | Description                                                                                                   |
+|-----------|---------------------------------------------------------------------------------------------------------------|
+| database  | The Athena database to query. Used for `QueryExecutionContext.Database` in the AWS SDK.                       |
+| s3Bucket  | The S3 bucket in which to store results. Used for  `ResultConfiguration.OutputLocation` in the AWS SDK.       |
+| workgroup | The Athena workgroup to use for the query. Used for `WorkGroup` in the AWS SDK. Optional - default "primary". |
 
 ## Run a Query
 
