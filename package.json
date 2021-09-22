@@ -24,8 +24,7 @@
     "nyc": "^14.0.0",
     "prettier-eslint-cli": "^5.0.1",
     "proxyquire": "^1.8.0",
-    "sinon": "^2.4.1",
-    "xunit-file": "^1.0.0"
+    "sinon": "^2.4.1"
   },
   "scripts": {
     "make-me-pretty": "prettier-eslint \"**/*.js\" --write",
