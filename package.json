@@ -3,7 +3,7 @@
     "aws-sdk": "^2.846.0",
     "bluebird": "^3.5.0",
     "lodash": "^4.17.20",
-    "proxy-agent": "^4.0.1",
+    "proxy-agent": "^5.0.0",
     "sinon-chai": "^3.3.0",
     "uuid": "^3.3.2"
   },
@@ -20,7 +20,7 @@
     "eslint-config-sparkpost": "^2.0.0",
     "husky": "^1.1.2",
     "lint-staged": "^11.0.0",
-    "mocha": "^5.2.0",
+    "mocha": "^9.1.1",
     "nyc": "^14.0.0",
     "prettier-eslint-cli": "^5.0.1",
     "proxyquire": "^1.8.0",
