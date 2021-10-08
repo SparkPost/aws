@@ -7,7 +7,7 @@ const sqs = require('@sparkpost/aws').SQS({
   account: 'abc123', 
   queuePrefix: 'sqs-', 
   queueSuffix: '-prd',
-  defaultVisibilityTimeout: 301,
+  defaultVisibilityTimeout: 301
 });
 ```
 
