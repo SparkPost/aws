@@ -21,7 +21,8 @@ describe('SQS Utilities', function() {
     ,testConfig
     ,s3Config
     ,awsMock
-    ,queueUrl;
+    ,queueUrl
+    ,endpointUrls;
 
   beforeEach(function() {
     result = 'result';
@@ -50,6 +51,8 @@ describe('SQS Utilities', function() {
       Body: compress(JSON.stringify({ expect: 'a passing test!' }))
     };
 
+    endpointUrls = [];
+
     awsMock = {
       config: {
         region: 'Winterfel'
@@ -66,7 +69,8 @@ describe('SQS Utilities', function() {
         }
       },
       Endpoint: class {
-        constructor() {
+        constructor(url) {
+          endpointUrls.push(url);
           return 'this is the endpoint';
         }
       }
@@ -82,10 +86,11 @@ describe('SQS Utilities', function() {
     sqsInstance = sqs(testConfig);
   });
 
-  it('should return a queue name', function() {
+  it('should return a queue name and not have endpoints set', function() {
     expect(sqsInstance.getQueueURL('webhooks')).to.equal(
       'https://sqs.Winterfel.amazonaws.com/Stark/etl_webhooks_ending'
     );
+    expect(endpointUrls).to.have.lengthOf(0);
   });
 
   it('should use the specified endpoint in queue names', function() {
@@ -98,6 +103,70 @@ describe('SQS Utilities', function() {
     );
     // S3 should not be using the endpoint
     expect(s3Config).to.not.have.keys(['endpoint']);
+  });
+
+  it('should use the specified protocol and endpoint for sqs in queue names', function() {
+    const sqsEndpointInstance = sqs({
+      ...testConfig,
+      ...{
+        sqsProtocol: 'http',
+        sqsEndpoint: 'localhost'
+      }
+    });
+
+    expect(sqsEndpointInstance.getQueueURL('webhooks')).to.equal(
+      'http://localhost/Stark/etl_webhooks_ending'
+    );
+
+    expect(endpointUrls).to.have.lengthOf(1);
+    expect(endpointUrls[0]).to.equal('http://localhost');
+    // S3 should not be using the same endpoint, nor path style flag
+    expect(s3Config).to.not.have.keys(['endpoint', 's3ForcePathStyle']);
+  });
+
+  it('should use the specified protocol and endpoint for s3', function() {
+    const s3EndpointInstance = sqs({
+      ...testConfig,
+      ...{
+        s3Protocol: 'http',
+        s3Endpoint: '0.0.0.0'
+      }
+    });
+
+    // SQS Queue url is not changed due to s3 config
+    expect(s3EndpointInstance.getQueueURL('webhooks')).to.equal(
+      'https://sqs.Winterfel.amazonaws.com/Stark/etl_webhooks_ending'
+    );
+
+    expect(endpointUrls).to.have.lengthOf(1);
+    expect(endpointUrls[0]).to.equal('http://0.0.0.0');
+
+    expect(s3Config).to.have.property('endpoint');
+    expect(s3Config).to.not.have.property('s3ForcePathStyle');
+  });
+
+  it('should use endpoints for sqs and s3 if specified', function() {
+    const s3EndpointInstance = sqs({
+      ...testConfig,
+      ...{
+        sqsProtocol: 'http',
+        sqsEndpoint: 'localhost',
+        s3Protocol: 'http',
+        s3Endpoint: '0.0.0.0',
+        s3ForcePathStyle: true
+      }
+    });
+
+    expect(s3EndpointInstance.getQueueURL('webhooks')).to.equal(
+      'http://localhost/Stark/etl_webhooks_ending'
+    );
+
+    expect(endpointUrls).to.have.lengthOf(2);
+    expect(endpointUrls[0]).to.equal('http://localhost');
+    expect(endpointUrls[1]).to.equal('http://0.0.0.0');
+
+    expect(s3Config).to.have.property('endpoint');
+    expect(s3Config.s3ForcePathStyle).to.equals(true);
   });
 
   it('should default prefix and suffix to the empty string name', function() {
@@ -737,7 +806,10 @@ describe('SQS Utilities', function() {
       expect(res).to.equal('result');
       expect(sqsMock.deleteMessageBatch.callCount).to.equal(1);
       expect(sqsMock.deleteMessageBatch.args[0][0]).to.deep.equal({
-        Entries: [{ Id: 1, foo: 'bar' }, { Id: 2, foo: 'bat' }],
+        Entries: [
+          { Id: 1, foo: 'bar' },
+          { Id: 2, foo: 'bat' }
+        ],
         QueueUrl: queueUrl
       });
     });

@@ -7,7 +7,21 @@ const sqs = require('@sparkpost/aws').SQS({
   account: 'abc123', 
   queuePrefix: 'sqs-', 
   queueSuffix: '-prd',
-  defaultVisibilityTimeout: 301
+  defaultVisibilityTimeout: 301,
+});
+```
+
+Localstack configuration example
+
+```js
+const sqs = require('@sparkpost/aws').SQS({ 
+  account: '000000000000',
+  bypassProxy: false,
+  sqsEndpoint: 'localhost:4566',
+  sqsProtocol: 'http',
+  s3Endpoint: 'localhost:4566',
+  s3Protocol: 'http',
+  s3ForcePathStyle: true
 });
 ```
 
@@ -17,6 +31,17 @@ const sqs = require('@sparkpost/aws').SQS({
 
 `defaultVisibilityTimeout` is optional and defaults to 300s. It sets the VisibilityTimeout value when retrieving messgaes from a queue.
 
+`sqsEndpoint` is optional default to null. It sets the SQS endpoint used in all SQS requests.
+
+`sqsProtocol` is optional and defaults to https. It sets the protocol used
+in SQS URL.
+
+`s3Endpoint` is optional default to null. It sets the S3 endpoint used in all S3 requests.
+
+`s3Protocol` is optional and defaults to https. It sets the protocol used
+in S3 URL.
+
+`s3ForcePathStyle` is optional and default to null. It sets whether to force path style URLs for S3 objects. It's useful when running Localstack.
 
 ## getQueueURL
 
