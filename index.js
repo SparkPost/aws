@@ -13,6 +13,7 @@ module.exports = {
       'region',
       'proxy',
       'maxRetries',
+      'useLocalDynamoDB',
       'retryDelayOptions',
       'apiVersion'
     ];
@@ -20,6 +21,8 @@ module.exports = {
     configurationKeys.forEach((key) => {
       if (key === 'proxy' && conf.proxy) {
         clientConfig.httpOptions = { agent: proxy(conf.proxy) };
+      } else if (key === 'useLocalDynamoDB' && conf[key] !== undefined) {
+        clientConfig.useLocalDynamoDB = conf.useLocalDynamoDB;
       } else if (key in conf) {
         awsConf[key] = conf[key];
       }
