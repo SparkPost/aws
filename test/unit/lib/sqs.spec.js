@@ -8,7 +8,7 @@ const sinon = require('sinon');
 const _ = require('lodash');
 const zlib = require('zlib');
 const compress = zlib.gzipSync;
-chai.use(require('chai-sinon'));
+chai.use(require('sinon-chai'));
 chai.use(require('chai-as-promised'));
 
 describe('SQS Utilities', function() {
@@ -737,7 +737,10 @@ describe('SQS Utilities', function() {
       expect(res).to.equal('result');
       expect(sqsMock.deleteMessageBatch.callCount).to.equal(1);
       expect(sqsMock.deleteMessageBatch.args[0][0]).to.deep.equal({
-        Entries: [{ Id: 1, foo: 'bar' }, { Id: 2, foo: 'bat' }],
+        Entries: [
+          { Id: 1, foo: 'bar' },
+          { Id: 2, foo: 'bat' }
+        ],
         QueueUrl: queueUrl
       });
     });

@@ -5,7 +5,7 @@ const expect = chai.expect;
 const proxyquire = require('proxyquire').noCallThru();
 const sinon = require('sinon');
 
-chai.use(require('chai-sinon'));
+chai.use(require('sinon-chai'));
 chai.use(require('chai-as-promised'));
 
 describe('CloudSearch', function() {

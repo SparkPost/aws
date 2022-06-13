@@ -6,7 +6,7 @@ const sinon = require('sinon');
 const expect = chai.expect;
 const utils = require('../../../lib/utils');
 
-chai.use(require('chai-sinon'));
+chai.use(require('sinon-chai'));
 chai.use(require('chai-as-promised'));
 
 describe('AWS Library utilities', function() {
