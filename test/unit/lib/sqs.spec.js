@@ -20,6 +20,7 @@ describe('SQS Utilities', function() {
     ,result
     ,testConfig
     ,s3Config
+    ,sqsConfig
     ,awsMock
     ,queueUrl;
 
@@ -55,7 +56,8 @@ describe('SQS Utilities', function() {
         region: 'Winterfel'
       },
       SQS: class {
-        constructor() {
+        constructor(config) {
+          sqsConfig = config;
           return sqsMock;
         }
       },
@@ -93,11 +95,25 @@ describe('SQS Utilities', function() {
       ...testConfig,
       ...{ sqsEndpoint: 'some.other.endpoint' }
     });
+
     expect(endpointInstance.getQueueURL('webhooks')).to.equal(
       'https://some.other.endpoint/Stark/etl_webhooks_ending'
     );
     // S3 should not be using the endpoint
     expect(s3Config).to.not.have.keys(['endpoint']);
+  });
+
+  it('should use the specified timeouts', function() {
+    testConfig.sqsTimeout = 30000;
+    testConfig.sqsConnectTimeout = 60000;
+    sqsInstance = sqs(testConfig);
+    expect(sqsConfig.httpOptions.timeout).to.equal(30000);
+    expect(sqsConfig.httpOptions.connectTimeout).to.equal(60000);
+    // S3 should not be using the timeouts
+    expect(s3Config.httpOptions).to.not.have.keys([
+      'timeout',
+      'connectTimeout'
+    ]);
   });
 
   it('should default prefix and suffix to the empty string name', function() {
