@@ -17,7 +17,7 @@
     "eslint": "^5.6.1",
     "eslint-config-sparkpost": "^2.0.0",
     "husky": "^1.1.2",
-    "lint-staged": "^11.0.0",
+    "lint-staged": "^13.2.1",
     "mocha": "^5.2.0",
     "nyc": "^14.0.0",
     "prettier-eslint-cli": "^5.0.1",
