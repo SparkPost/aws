@@ -6,6 +6,10 @@
       "rules": {
         "complexity": ["error", { "max": 10 }]
       }
+    },
+    {
+      "files": ["test/**/*.spec.js"],
+      "extends": ["sparkpost/mocha"]
     }
   ]
 }

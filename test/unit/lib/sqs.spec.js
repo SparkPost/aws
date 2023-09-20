@@ -386,9 +386,7 @@ describe('SQS Utilities', function() {
       let payload;
 
       for (let index = 0; index < 300000; index++) {
-        payload += Math.random()
-          .toString(36)
-          .substr(2, 1);
+        payload += Math.random().toString(36).substr(2, 1);
       }
 
       sinon.stub(Math, 'random');
@@ -436,9 +434,7 @@ describe('SQS Utilities', function() {
       let payload;
 
       for (let index = 0; index < 220000; index++) {
-        payload += Math.random()
-          .toString(36)
-          .substr(2, 1);
+        payload += Math.random().toString(36).substr(2, 1);
       } // Payload size = 293348
 
       sinon.stub(Math, 'random');
