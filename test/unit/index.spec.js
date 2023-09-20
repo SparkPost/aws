@@ -6,6 +6,8 @@ const expect = chai.expect;
 const proxyquire = require('proxyquire').noCallThru();
 const clientConfig = require('lib/client-config');
 
+chai.use(require('sinon-chai'));
+
 describe('AWS Constructor tests', function() {
   let awsWrapper
     ,dynamoStub
