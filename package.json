@@ -43,8 +43,7 @@
   "lint-staged": {
     "**/*.js": [
       "npm run make-me-pretty",
-      "npm run lint",
-      "git add"
+      "npm run lint"
     ]
   },
   "repository": {
