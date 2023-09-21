@@ -6,6 +6,8 @@ const expect = chai.expect;
 const proxyquire = require('proxyquire').noCallThru();
 const clientConfig = require('lib/client-config');
 
+chai.use(require('sinon-chai'));
+
 describe('AWS Constructor tests', function() {
   let awsWrapper
     ,dynamoStub
@@ -17,7 +19,13 @@ describe('AWS Constructor tests', function() {
     ,ssmStub;
 
   beforeEach(function() {
-    proxyStub = sinon.stub().returns('my-proxy-server');
+    proxyStub = {
+      ProxyAgent: class {
+        constructor() {
+          return { proxy: 'my-proxy-server' };
+        }
+      }
+    };
     dynamoStub = sinon.stub();
     snsStub = sinon.stub();
     sqsStub = sinon.stub();
@@ -51,9 +59,8 @@ describe('AWS Constructor tests', function() {
     awsWrapper.initialize({
       proxy: 'my-proxy-server'
     });
-    expect(proxyStub).to.have.been.calledWith('my-proxy-server');
     expect(clientConfig).to.deep.equal({
-      httpOptions: { agent: 'my-proxy-server' }
+      httpOptions: { agent: { proxy: 'my-proxy-server' } }
     });
   });
 

@@ -54,7 +54,7 @@ describe('Athena', function() {
   it('should query athena and make the results into JSON', function() {
     return client.query('some real SQL').then((result) => {
       expect(mockAthenaConstructor).to.have.been.calledWith({
-        httpOptions: { agent: 'my-proxy-server' }
+        httpOptions: { agent: { proxy: 'my-proxy-server' } }
       });
       expect(mockAthena.startQueryExecution).to.have.callCount(1);
       expect(mockAthena.startQueryExecution).to.have.been.calledWith({
@@ -98,7 +98,7 @@ describe('Athena', function() {
     });
     return client.query('some real SQL').then((result) => {
       expect(mockAthenaConstructor).to.have.been.calledWith({
-        httpOptions: { agent: 'my-proxy-server' }
+        httpOptions: { agent: { proxy: 'my-proxy-server' } }
       });
       expect(mockAthena.startQueryExecution).to.have.callCount(1);
       expect(mockAthena.startQueryExecution).to.have.been.calledWith({
@@ -139,7 +139,7 @@ describe('Athena', function() {
       .query('some real SQL', { NextToken: 'hello' })
       .then((result) => {
         expect(mockAthenaConstructor).to.have.been.calledWith({
-          httpOptions: { agent: 'my-proxy-server' }
+          httpOptions: { agent: { proxy: 'my-proxy-server' } }
         });
         expect(mockAthena.startQueryExecution).to.have.callCount(1);
         expect(mockAthena.startQueryExecution).to.have.been.calledWith({
@@ -197,7 +197,7 @@ describe('Athena', function() {
 
     return client.query('some real SQL').then((result) => {
       expect(mockAthenaConstructor).to.have.been.calledWith({
-        httpOptions: { agent: 'my-proxy-server' }
+        httpOptions: { agent: { proxy: 'my-proxy-server' } }
       });
       expect(mockAthena.startQueryExecution).to.have.callCount(1);
       expect(mockAthena.getQueryExecution).to.have.callCount(1);
