@@ -758,6 +758,218 @@ describe('SQS Utilities', function() {
     });
   });
 
+  describe('extendedSend with UUID prefix', function() {
+    let payload;
+
+    beforeEach(function() {
+      // Create a large payload to trigger S3 upload
+      payload = '';
+      for (let index = 0; index < 300000; index++) {
+        payload += Math.random().toString(36).substr(2, 1);
+      }
+    });
+
+    afterEach(function() {
+      if (Math.random.restore) {
+        Math.random.restore();
+      }
+    });
+
+    it('should use UUID as prefix when uuidPrefix is true', function() {
+      return sqsInstance
+        .extendedSend({
+          queueName: 'queue',
+          s3Bucket: 'test',
+          payload,
+          uuidPrefix: true
+        })
+        .then((res) => {
+          expect(res.extended).to.equal(true);
+
+          // Should use UUID format (8-4-4-4-12) as prefix, not numeric shard
+          expect(res.key).to.match(
+            /^\/[0-9A-F]{8}-[0-9A-F]{4}-4[0-9A-F]{3}-[89AB][0-9A-F]{3}-[0-9A-F]{12}\/[0-9A-F]{8}-[0-9A-F]{4}-4[0-9A-F]{3}-[89AB][0-9A-F]{3}-[0-9A-F]{12}\.json\.gz$/i
+          );
+
+          // Should NOT match numeric shard pattern
+          expect(res.key).to.not.match(/^\/\d+\//);
+
+          expect(s3Mock.upload).to.have.been.calledWithMatch({
+            Bucket: 'test',
+            ContentEncoding: 'gzip'
+          });
+
+          // Verify the S3 key uses UUID prefix
+          expect(s3Mock.upload.args[0][0].Key).to.match(
+            /^\/[0-9A-F]{8}-[0-9A-F]{4}-4[0-9A-F]{3}-[89AB][0-9A-F]{3}-[0-9A-F]{12}\/[0-9A-F]{8}-[0-9A-F]{4}-4[0-9A-F]{3}-[89AB][0-9A-F]{3}-[0-9A-F]{12}\.json\.gz$/i
+          );
+        });
+    });
+
+    it('should use numeric shard prefix when uuidPrefix is false (default)', function() {
+      sinon.stub(Math, 'random');
+      Math.random.returns(0.6); // Should result in shard 30 with default 50 shards
+
+      return sqsInstance
+        .extendedSend({
+          queueName: 'queue',
+          s3Bucket: 'test',
+          payload,
+          uuidPrefix: false
+        })
+        .then((res) => {
+          expect(res.extended).to.equal(true);
+
+          // Should use numeric shard as prefix
+          expect(res.key).to.match(
+            /^\/30\/[0-9A-F]{8}-[0-9A-F]{4}-4[0-9A-F]{3}-[89AB][0-9A-F]{3}-[0-9A-F]{12}\.json\.gz$/i
+          );
+
+          // Should NOT match UUID prefix pattern
+          expect(res.key).to.not.match(
+            /^\/[0-9A-F]{8}-[0-9A-F]{4}-4[0-9A-F]{3}-[89AB][0-9A-F]{3}-[0-9A-F]{12}\//
+          );
+        });
+    });
+
+    it('should use numeric shard prefix when uuidPrefix is not specified (backward compatibility)', function() {
+      sinon.stub(Math, 'random');
+      Math.random.returns(0.8); // Should result in shard 40 with default 50 shards
+
+      return sqsInstance
+        .extendedSend({
+          queueName: 'queue',
+          s3Bucket: 'test',
+          payload
+          // uuidPrefix not specified - should default to false
+        })
+        .then((res) => {
+          expect(res.extended).to.equal(true);
+
+          // Should use numeric shard as prefix
+          expect(res.key).to.match(
+            /^\/40\/[0-9A-F]{8}-[0-9A-F]{4}-4[0-9A-F]{3}-[89AB][0-9A-F]{3}-[0-9A-F]{12}\.json\.gz$/i
+          );
+        });
+    });
+
+    it('should respect custom shard count with numeric prefix', function() {
+      sinon.stub(Math, 'random');
+      Math.random.returns(0.5); // Should result in shard 500 with 1000 shards
+
+      return sqsInstance
+        .extendedSend({
+          queueName: 'queue',
+          s3Bucket: 'test',
+          payload,
+          shards: 1000,
+          uuidPrefix: false
+        })
+        .then((res) => {
+          expect(res.extended).to.equal(true);
+
+          // Should use numeric shard as prefix with custom shard count
+          expect(res.key).to.match(
+            /^\/500\/[0-9A-F]{8}-[0-9A-F]{4}-4[0-9A-F]{3}-[89AB][0-9A-F]{3}-[0-9A-F]{12}\.json\.gz$/i
+          );
+        });
+    });
+
+    it('should ignore shards parameter when uuidPrefix is true', function() {
+      return sqsInstance
+        .extendedSend({
+          queueName: 'queue',
+          s3Bucket: 'test',
+          payload,
+          shards: 5, // Should be ignored
+          uuidPrefix: true
+        })
+        .then((res) => {
+          expect(res.extended).to.equal(true);
+
+          // Should use UUID prefix regardless of shards parameter
+          expect(res.key).to.match(
+            /^\/[0-9A-F]{8}-[0-9A-F]{4}-4[0-9A-F]{3}-[89AB][0-9A-F]{3}-[0-9A-F]{12}\/[0-9A-F]{8}-[0-9A-F]{4}-4[0-9A-F]{3}-[89AB][0-9A-F]{3}-[0-9A-F]{12}\.json\.gz$/i
+          );
+
+          // Should NOT use any numeric shard
+          expect(res.key).to.not.match(/^\/[0-4]\//);
+        });
+    });
+
+    it('should generate different UUID prefixes on subsequent calls', function() {
+      return Promise.all([
+        sqsInstance.extendedSend({
+          queueName: 'queue',
+          s3Bucket: 'test',
+          payload,
+          uuidPrefix: true
+        }),
+        sqsInstance.extendedSend({
+          queueName: 'queue',
+          s3Bucket: 'test',
+          payload,
+          uuidPrefix: true
+        }),
+        sqsInstance.extendedSend({
+          queueName: 'queue',
+          s3Bucket: 'test',
+          payload,
+          uuidPrefix: true
+        })
+      ]).then((results) => {
+        // Extract prefixes from keys
+        const prefixes = results.map((res) => {
+          const match = res.key.match(/^\/([^\/]+)\//);
+          return match ? match[1] : null;
+        });
+
+        // All prefixes should be valid UUIDs
+        prefixes.forEach((prefix) => {
+          expect(prefix).to.match(
+            /^[0-9A-F]{8}-[0-9A-F]{4}-4[0-9A-F]{3}-[89AB][0-9A-F]{3}-[0-9A-F]{12}$/i
+          );
+        });
+
+        // All prefixes should be unique
+        const uniquePrefixes = [...new Set(prefixes)];
+        expect(uniquePrefixes).to.have.lengthOf(3);
+      });
+    });
+
+    it('should include UUID prefix in SQS message attributes', function() {
+      return sqsInstance
+        .extendedSend({
+          queueName: 'queue',
+          s3Bucket: 'test',
+          payload,
+          uuidPrefix: true
+        })
+        .then(() => {
+          expect(sqsMock.sendMessage).to.have.been.calledWithMatch({
+            MessageBody: 'true',
+            QueueUrl: queueUrl,
+            MessageAttributes: {
+              EXTENDED_S3_BUCKET: {
+                DataType: 'String',
+                StringValue: 'test'
+              },
+              EXTENDED_S3_KEY: {
+                DataType: 'String'
+              }
+            }
+          });
+
+          // Verify the SQS message contains the UUID-prefixed key
+          const s3Key = sqsMock.sendMessage.args[0][0].MessageAttributes.EXTENDED_S3_KEY
+            .StringValue;
+          expect(s3Key).to.match(
+            /^\/[0-9A-F]{8}-[0-9A-F]{4}-4[0-9A-F]{3}-[89AB][0-9A-F]{3}-[0-9A-F]{12}\/[0-9A-F]{8}-[0-9A-F]{4}-4[0-9A-F]{3}-[89AB][0-9A-F]{3}-[0-9A-F]{12}\.json\.gz$/i
+          );
+        });
+    });
+  });
+
   describe('maybeRetrieveFromS3', function() {
     it('should fetch from s3 when an extended message', function() {
       s3Mock.getObjectAsync = sinon
