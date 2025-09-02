@@ -32,7 +32,7 @@
     "test-base": "NODE_ENV=test NODE_PATH=$NODE_PATH:. nyc --reporter=lcov --report-dir=test/reports/unit mocha test/unit/",
     "test": "NODE_ENV=test NODE_PATH=$NODE_PATH:. nyc --reporter=text-summary --reporter=lcov --report-dir=test/reports/unit/ mocha test/unit/",
     "prepublishOnly": "npm test",
-    "postpublish": "git push --follow-tags origin master"
+    "postpublish": "git push --follow-tags origin main"
   },
   "husky": {
     "hooks": {
