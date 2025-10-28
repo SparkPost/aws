@@ -920,7 +920,7 @@ describe('SQS Utilities', function() {
       ]).then((results) => {
         // Extract prefixes from keys
         const prefixes = results.map((res) => {
-          const match = res.key.match(/^\/([^\/]+)\//);
+          const match = res.key.match(/^\/([^/]+)\//);
           return match ? match[1] : null;
         });
 
@@ -966,6 +966,88 @@ describe('SQS Utilities', function() {
           expect(s3Key).to.match(
             /^\/[0-9A-F]{8}-[0-9A-F]{4}-4[0-9A-F]{3}-[89AB][0-9A-F]{3}-[0-9A-F]{12}\/[0-9A-F]{8}-[0-9A-F]{4}-4[0-9A-F]{3}-[89AB][0-9A-F]{3}-[0-9A-F]{12}\.json\.gz$/i
           );
+        });
+    });
+  });
+
+  describe('extendedSend with S3 SlowDown retry', function() {
+    let largePayload;
+    for (let index = 0; index < 300000; index++) {
+      largePayload += Math.random().toString(36).substr(2, 1);
+    }
+
+    it('should retry with new UUID on SlowDown error', function() {
+      let uploadAttempts = 0;
+
+      s3Mock.upload = sinon.stub().callsFake((params, callback) => {
+        uploadAttempts++;
+
+        if (uploadAttempts === 1) {
+          // First attempt fails with SlowDown
+          const err = new Error('SlowDown');
+          err.code = 'SlowDown';
+          err.statusCode = 503;
+          callback(err);
+        } else {
+          // Second attempt succeeds
+          callback(null, { ETag: 'test' });
+        }
+      });
+
+      return sqsInstance
+        .extendedSend({
+          queueName: 'queue',
+          s3Bucket: 'test',
+          payload: largePayload,
+          uuidPrefix: true
+        })
+        .then((res) => {
+          expect(uploadAttempts).to.equal(2);
+          expect(res.extended).to.equal(true);
+          expect(s3Mock.upload.firstCall.args[0].Key).to.not.equal(
+            s3Mock.upload.secondCall.args[0].Key
+          );
+        });
+    });
+
+    it('should not retry SlowDown when uuidPrefix is false', function() {
+      s3Mock.upload = sinon.stub().callsFake((params, callback) => {
+        const err = new Error('SlowDown');
+        err.code = 'SlowDown';
+        callback(err);
+      });
+
+      return sqsInstance
+        .extendedSend({
+          queueName: 'queue',
+          s3Bucket: 'test',
+          payload: largePayload,
+          uuidPrefix: false
+        })
+        .catch((err) => {
+          expect(err.code).to.equal('SlowDown');
+          expect(s3Mock.upload).to.have.been.calledOnce;
+        });
+    });
+
+    it('should throw after max retry attempts', function() {
+      s3Mock.upload = sinon.stub().callsFake((params, callback) => {
+        const err = new Error('SlowDown');
+        err.code = 'SlowDown';
+        err.statusCode = 503;
+        callback(err);
+      });
+
+      return sqsInstance
+        .extendedSend({
+          queueName: 'queue',
+          s3Bucket: 'test',
+          payload: largePayload,
+          uuidPrefix: true
+        })
+        .catch((err) => {
+          expect(err.code).to.equal('SlowDown');
+          expect(s3Mock.upload).to.have.been.calledThrice;
         });
     });
   });
