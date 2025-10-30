@@ -989,22 +989,21 @@ describe('SQS Utilities', function() {
     });
   });
 
-  describe('extendedSend with S3 SlowDown retry', function() {
+  describe('extendedSend with S3 5xx error retry', function() {
     let largePayload;
     for (let index = 0; index < 300000; index++) {
       largePayload += Math.random().toString(36).substr(2, 1);
     }
 
-    it('should retry with new UUID on SlowDown error', function() {
+    it('should retry with new UUID on 503 SlowDown error', function() {
       let uploadAttempts = 0;
 
       s3Mock.upload = sinon.stub().callsFake((params, callback) => {
         uploadAttempts++;
 
         if (uploadAttempts === 1) {
-          // First attempt fails with SlowDown
+          // First attempt fails with 503 SlowDown
           const err = new Error('SlowDown');
-          err.code = 'SlowDown';
           err.statusCode = 503;
           callback(err);
         } else {
@@ -1030,10 +1029,106 @@ describe('SQS Utilities', function() {
         });
     });
 
-    it('should not retry SlowDown when uuidPrefix is false', function() {
+    it('should retry with new UUID on 500 Internal Server Error', function() {
+      let uploadAttempts = 0;
+
       s3Mock.upload = sinon.stub().callsFake((params, callback) => {
-        const err = new Error('SlowDown');
-        err.code = 'SlowDown';
+        uploadAttempts++;
+
+        if (uploadAttempts === 1) {
+          // First attempt fails with 500
+          const err = new Error('Internal Server Error');
+          err.statusCode = 500;
+          callback(err);
+        } else {
+          // Second attempt succeeds
+          callback(null, { ETag: 'test' });
+        }
+      });
+
+      return sqsInstance
+        .extendedSend({
+          queueName: 'queue',
+          s3Bucket: 'test',
+          payload: largePayload,
+          uuidPrefix: true
+        })
+        .then((res) => {
+          expect(uploadAttempts).to.equal(2);
+          expect(res.extended).to.equal(true);
+          expect(res.s3UploadAttempts).to.equal(2);
+          expect(s3Mock.upload.firstCall.args[0].Key).to.not.equal(
+            s3Mock.upload.secondCall.args[0].Key
+          );
+        });
+    });
+
+    it('should retry with new UUID on 502 Bad Gateway error', function() {
+      let uploadAttempts = 0;
+
+      s3Mock.upload = sinon.stub().callsFake((params, callback) => {
+        uploadAttempts++;
+
+        if (uploadAttempts === 1) {
+          // First attempt fails with 502
+          const err = new Error('Bad Gateway');
+          err.statusCode = 502;
+          callback(err);
+        } else {
+          // Second attempt succeeds
+          callback(null, { ETag: 'test' });
+        }
+      });
+
+      return sqsInstance
+        .extendedSend({
+          queueName: 'queue',
+          s3Bucket: 'test',
+          payload: largePayload,
+          uuidPrefix: true
+        })
+        .then((res) => {
+          expect(uploadAttempts).to.equal(2);
+          expect(res.extended).to.equal(true);
+          expect(res.s3UploadAttempts).to.equal(2);
+        });
+    });
+
+    it('should retry with new UUID on 504 Gateway Timeout error', function() {
+      let uploadAttempts = 0;
+
+      s3Mock.upload = sinon.stub().callsFake((params, callback) => {
+        uploadAttempts++;
+
+        if (uploadAttempts === 1) {
+          // First attempt fails with 504
+          const err = new Error('Gateway Timeout');
+          err.statusCode = 504;
+          callback(err);
+        } else {
+          // Second attempt succeeds
+          callback(null, { ETag: 'test' });
+        }
+      });
+
+      return sqsInstance
+        .extendedSend({
+          queueName: 'queue',
+          s3Bucket: 'test',
+          payload: largePayload,
+          uuidPrefix: true
+        })
+        .then((res) => {
+          expect(uploadAttempts).to.equal(2);
+          expect(res.extended).to.equal(true);
+          expect(res.s3UploadAttempts).to.equal(2);
+        });
+    });
+
+    it('should not retry 5xx errors when uuidPrefix is false', function() {
+      s3Mock.upload = sinon.stub().callsFake((params, callback) => {
+        const err = new Error('Internal Server Error');
+        err.statusCode = 500;
         callback(err);
       });
 
@@ -1045,16 +1140,15 @@ describe('SQS Utilities', function() {
           uuidPrefix: false
         })
         .catch((err) => {
-          expect(err.code).to.equal('SlowDown');
+          expect(err.statusCode).to.equal(500);
           expect(s3Mock.upload).to.have.been.calledOnce;
         });
     });
 
-    it('should throw after max retry attempts', function() {
+    it('should not retry non-5xx errors even with uuidPrefix', function() {
       s3Mock.upload = sinon.stub().callsFake((params, callback) => {
-        const err = new Error('SlowDown');
-        err.code = 'SlowDown';
-        err.statusCode = 503;
+        const err = new Error('Access Denied');
+        err.statusCode = 403;
         callback(err);
       });
 
@@ -1066,7 +1160,27 @@ describe('SQS Utilities', function() {
           uuidPrefix: true
         })
         .catch((err) => {
-          expect(err.code).to.equal('SlowDown');
+          expect(err.statusCode).to.equal(403);
+          expect(s3Mock.upload).to.have.been.calledOnce;
+        });
+    });
+
+    it('should throw after max retry attempts for 5xx errors', function() {
+      s3Mock.upload = sinon.stub().callsFake((params, callback) => {
+        const err = new Error('Internal Server Error');
+        err.statusCode = 500;
+        callback(err);
+      });
+
+      return sqsInstance
+        .extendedSend({
+          queueName: 'queue',
+          s3Bucket: 'test',
+          payload: largePayload,
+          uuidPrefix: true
+        })
+        .catch((err) => {
+          expect(err.statusCode).to.equal(500);
           expect(s3Mock.upload).to.have.been.calledThrice;
         });
     });
@@ -1079,9 +1193,8 @@ describe('SQS Utilities', function() {
         uploadAttempts++;
 
         if (uploadAttempts <= 2) {
-          // First two attempts fail with SlowDown
-          const err = new Error('SlowDown');
-          err.code = 'SlowDown';
+          // First two attempts fail with 5xx error
+          const err = new Error('Service Unavailable');
           err.statusCode = 503;
           callback(err);
         } else {
