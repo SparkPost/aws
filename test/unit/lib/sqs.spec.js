@@ -257,7 +257,8 @@ describe('SQS Utilities', function() {
           expect(res).to.deep.equal({
             res: result,
             extended: false,
-            key: false
+            key: false,
+            s3UploadAttempts: 0
           });
           expect(sqsMock.sendMessage.callCount).to.equal(1);
           expect(sqsMock.sendMessage.args[0][0]).to.deep.equal({
@@ -287,7 +288,8 @@ describe('SQS Utilities', function() {
           expect(res).to.deep.equal({
             res: result,
             extended: false,
-            key: false
+            key: false,
+            s3UploadAttempts: 0
           });
           expect(sqsMock.sendMessage.callCount).to.equal(1);
           expect(sqsMock.sendMessage.args[0][0]).to.deep.equal({
@@ -312,7 +314,8 @@ describe('SQS Utilities', function() {
           expect(res).to.deep.equal({
             res: result,
             extended: false,
-            key: false
+            key: false,
+            s3UploadAttempts: 0
           });
           expect(sqsMock.sendMessage.callCount).to.equal(1);
           expect(sqsMock.sendMessage.args[0][0]).to.deep.equal({
@@ -339,7 +342,8 @@ describe('SQS Utilities', function() {
           expect(res).to.deep.equal({
             res: result,
             extended: false,
-            key: false
+            key: false,
+            s3UploadAttempts: 0
           });
           expect(sqsMock.sendMessage.callCount).to.equal(1);
           expect(sqsMock.sendMessage.args[0][0]).to.deep.equal({
@@ -369,7 +373,8 @@ describe('SQS Utilities', function() {
           expect(res).to.deep.equal({
             res: result,
             extended: false,
-            key: false
+            key: false,
+            s3UploadAttempts: 0
           });
           expect(sqsMock.sendMessage.callCount).to.equal(1);
           expect(sqsMock.sendMessage.args[0][0]).to.deep.equal({
@@ -399,6 +404,7 @@ describe('SQS Utilities', function() {
           expect(res.key).to.match(
             /25\/[0-9A-F]{8}-[0-9A-F]{4}-4[0-9A-F]{3}-[89AB][0-9A-F]{3}-[0-9A-F]{12}\.json\.gz/i
           );
+          expect(res.s3UploadAttempts).to.equal(1);
           expect(s3Mock.upload).to.have.been.calledWithMatch({
             Bucket: 'test'
           });
@@ -455,7 +461,8 @@ describe('SQS Utilities', function() {
           expect(res).to.deep.equal({
             res: result,
             extended: false,
-            key: false
+            key: false,
+            s3UploadAttempts: 0
           }); // Expecting to send via SQS only
           expect(sqsMock.sendMessage.callCount).to.equal(1);
           expect(sqsMock.sendMessage.args[0][0]).to.deep.equal({
@@ -491,7 +498,8 @@ describe('SQS Utilities', function() {
           expect(res).to.deep.equal({
             res: result,
             extended: false,
-            key: false
+            key: false,
+            s3UploadAttempts: 0
           }); // Expecting to send via SQS only
           expect(sqsMock.sendMessage.callCount).to.equal(1);
           expect(sqsMock.sendMessage.args[0][0]).to.deep.equal({
@@ -785,6 +793,7 @@ describe('SQS Utilities', function() {
         })
         .then((res) => {
           expect(res.extended).to.equal(true);
+          expect(res.s3UploadAttempts).to.equal(1);
 
           // Should use UUID format (8-4-4-4-12) as prefix, not numeric shard
           expect(res.key).to.match(
@@ -819,6 +828,7 @@ describe('SQS Utilities', function() {
         })
         .then((res) => {
           expect(res.extended).to.equal(true);
+          expect(res.s3UploadAttempts).to.equal(1);
 
           // Should use numeric shard as prefix
           expect(res.key).to.match(
@@ -845,6 +855,7 @@ describe('SQS Utilities', function() {
         })
         .then((res) => {
           expect(res.extended).to.equal(true);
+          expect(res.s3UploadAttempts).to.equal(1);
 
           // Should use numeric shard as prefix
           expect(res.key).to.match(
@@ -867,6 +878,7 @@ describe('SQS Utilities', function() {
         })
         .then((res) => {
           expect(res.extended).to.equal(true);
+          expect(res.s3UploadAttempts).to.equal(1);
 
           // Should use numeric shard as prefix with custom shard count
           expect(res.key).to.match(
@@ -886,6 +898,7 @@ describe('SQS Utilities', function() {
         })
         .then((res) => {
           expect(res.extended).to.equal(true);
+          expect(res.s3UploadAttempts).to.equal(1);
 
           // Should use UUID prefix regardless of shards parameter
           expect(res.key).to.match(
@@ -918,6 +931,12 @@ describe('SQS Utilities', function() {
           uuidPrefix: true
         })
       ]).then((results) => {
+        // All results should have successful uploads with 1 attempt
+        results.forEach((res) => {
+          expect(res.s3UploadAttempts).to.equal(1);
+          expect(res.extended).to.equal(true);
+        });
+
         // Extract prefixes from keys
         const prefixes = results.map((res) => {
           const match = res.key.match(/^\/([^/]+)\//);
@@ -1004,6 +1023,7 @@ describe('SQS Utilities', function() {
         .then((res) => {
           expect(uploadAttempts).to.equal(2);
           expect(res.extended).to.equal(true);
+          expect(res.s3UploadAttempts).to.equal(2);
           expect(s3Mock.upload.firstCall.args[0].Key).to.not.equal(
             s3Mock.upload.secondCall.args[0].Key
           );
@@ -1048,6 +1068,59 @@ describe('SQS Utilities', function() {
         .catch((err) => {
           expect(err.code).to.equal('SlowDown');
           expect(s3Mock.upload).to.have.been.calledThrice;
+        });
+    });
+
+    it('should track s3UploadAttempts correctly for retry scenarios', function() {
+      let uploadAttempts = 0;
+
+      // Test: Third attempt succeeds after 2 retries
+      s3Mock.upload = sinon.stub().callsFake((params, callback) => {
+        uploadAttempts++;
+
+        if (uploadAttempts <= 2) {
+          // First two attempts fail with SlowDown
+          const err = new Error('SlowDown');
+          err.code = 'SlowDown';
+          err.statusCode = 503;
+          callback(err);
+        } else {
+          // Third attempt succeeds
+          callback(null, { ETag: 'test' });
+        }
+      });
+
+      return sqsInstance
+        .extendedSend({
+          queueName: 'queue',
+          s3Bucket: 'test',
+          payload: largePayload,
+          uuidPrefix: true,
+          maxS3Attempts: 3
+        })
+        .then((res) => {
+          expect(uploadAttempts).to.equal(3);
+          expect(res.extended).to.equal(true);
+          expect(res.s3UploadAttempts).to.equal(3);
+          expect(s3Mock.upload).to.have.been.calledThrice;
+        });
+    });
+
+    it('should return s3UploadAttempts=0 when no S3 upload occurs', function() {
+      const smallPayload = { pay: 'load' };
+
+      return sqsInstance
+        .extendedSend({
+          queueName: 'queue',
+          s3Bucket: 'test',
+          payload: smallPayload,
+          attrs: { foo: 'bar' }
+        })
+        .then((res) => {
+          expect(res.s3UploadAttempts).to.equal(0);
+          expect(res.extended).to.equal(false);
+          expect(res.key).to.equal(false);
+          expect(s3Mock.upload).to.not.have.been.called;
         });
     });
   });
