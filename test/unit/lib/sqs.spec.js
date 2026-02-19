@@ -103,6 +103,55 @@ describe('SQS Utilities', function() {
     expect(s3Config).to.not.have.keys(['endpoint']);
   });
 
+  it('should pass s3Endpoint and s3ForcePathStyle to the S3 client', function() {
+    sqs({
+      ...testConfig,
+      s3Endpoint: 'http://localhost:4566',
+      s3ForcePathStyle: true
+    });
+
+    expect(s3Config.endpoint).to.be.an.instanceOf(awsMock.Endpoint);
+    expect(s3Config.s3ForcePathStyle).to.equal(true);
+  });
+
+  it('should pass s3Endpoint without s3ForcePathStyle', function() {
+    sqs({
+      ...testConfig,
+      s3Endpoint: 'http://localhost:4566'
+    });
+
+    expect(s3Config.endpoint).to.be.an.instanceOf(awsMock.Endpoint);
+    expect(s3Config.s3ForcePathStyle).to.equal(false);
+  });
+
+  it('should ignore s3ForcePathStyle when s3Endpoint is not provided', function() {
+    sqs({ ...testConfig, s3ForcePathStyle: true });
+    expect(s3Config).to.not.have.keys(['endpoint', 's3ForcePathStyle']);
+  });
+
+  it('should support sqsEndpoint and s3Endpoint together without interference', function() {
+    const instance = sqs({
+      ...testConfig,
+      sqsEndpoint: 'some.other.endpoint',
+      s3Endpoint: 'http://localhost:4566',
+      s3ForcePathStyle: true
+    });
+
+    // SQS gets its own endpoint
+    expect(sqsConfig.endpoint).to.be.an.instanceOf(awsMock.Endpoint);
+    expect(instance.getQueueURL('webhooks')).to.equal(
+      'https://some.other.endpoint/Stark/etl_webhooks_ending'
+    );
+    // S3 gets its own endpoint
+    expect(s3Config.endpoint).to.be.an.instanceOf(awsMock.Endpoint);
+    expect(s3Config.s3ForcePathStyle).to.equal(true);
+  });
+
+  it('should not pass s3 endpoint config when not provided', function() {
+    sqs(testConfig);
+    expect(s3Config).to.not.have.keys(['endpoint', 's3ForcePathStyle']);
+  });
+
   it('should use the specified timeouts', function() {
     testConfig.sqsTimeout = 30000;
     testConfig.sqsConnectTimeout = 60000;
