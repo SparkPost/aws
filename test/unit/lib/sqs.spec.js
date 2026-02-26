@@ -6,7 +6,10 @@ const proxyquire = require('proxyquire').noCallThru();
 const sinon = require('sinon');
 
 const _ = require('lodash');
+const http = require('http');
+const https = require('https');
 const zlib = require('zlib');
+const AWS = require('aws-sdk');
 const compress = zlib.gzipSync;
 chai.use(require('sinon-chai'));
 chai.use(require('chai-as-promised'));
@@ -67,11 +70,7 @@ describe('SQS Utilities', function() {
           return s3Mock;
         }
       },
-      Endpoint: class {
-        constructor() {
-          return 'this is the endpoint';
-        }
-      }
+      Endpoint: AWS.Endpoint
     };
 
     // url for a queue named "queue"
@@ -101,6 +100,28 @@ describe('SQS Utilities', function() {
     );
     // S3 should not be using the endpoint
     expect(s3Config).to.not.have.keys(['endpoint']);
+  });
+
+  it('should use a full http:// URL as-is in queue names', function() {
+    const endpointInstance = sqs({
+      ...testConfig,
+      sqsEndpoint: 'http://localhost:4566'
+    });
+
+    expect(endpointInstance.getQueueURL('webhooks')).to.equal(
+      'http://localhost:4566/Stark/etl_webhooks_ending'
+    );
+  });
+
+  it('should use a full https:// URL as-is in queue names', function() {
+    const endpointInstance = sqs({
+      ...testConfig,
+      sqsEndpoint: 'https://custom.endpoint:9324'
+    });
+
+    expect(endpointInstance.getQueueURL('webhooks')).to.equal(
+      'https://custom.endpoint:9324/Stark/etl_webhooks_ending'
+    );
   });
 
   it('should pass s3Endpoint and s3ForcePathStyle to the S3 client', function() {
@@ -150,6 +171,36 @@ describe('SQS Utilities', function() {
   it('should not pass s3 endpoint config when not provided', function() {
     sqs(testConfig);
     expect(s3Config).to.not.have.keys(['endpoint', 's3ForcePathStyle']);
+  });
+
+  it('should use http.Agent for SQS when sqsEndpoint is http://', function() {
+    sqs({
+      ...testConfig,
+      sqsEndpoint: 'http://localhost:4566'
+    });
+
+    expect(sqsConfig.httpOptions.agent).to.be.an.instanceOf(http.Agent);
+    expect(sqsConfig.httpOptions.agent).to.not.be.an.instanceOf(https.Agent);
+  });
+
+  it('should use https.Agent for SQS when sqsEndpoint is a bare host', function() {
+    sqs({
+      ...testConfig,
+      sqsEndpoint: 'some.other.endpoint'
+    });
+
+    expect(sqsConfig.httpOptions.agent).to.be.an.instanceOf(https.Agent);
+  });
+
+  it('should use http.Agent for S3 when s3Endpoint is http://', function() {
+    sqs({
+      ...testConfig,
+      s3Endpoint: 'http://localhost:4566',
+      s3ForcePathStyle: true
+    });
+
+    expect(s3Config.httpOptions.agent).to.be.an.instanceOf(http.Agent);
+    expect(s3Config.httpOptions.agent).to.not.be.an.instanceOf(https.Agent);
   });
 
   it('should use the specified timeouts', function() {

@@ -41,3 +41,6 @@ jspm_packages
 test/reports
 xunit.xml
 .nyc_output
+
+# Claude Code
+CLAUDE.local.md

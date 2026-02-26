@@ -4,6 +4,8 @@
 const chai = require('chai');
 const sinon = require('sinon');
 const expect = chai.expect;
+const http = require('http');
+const https = require('https');
 const utils = require('../../../lib/utils');
 
 chai.use(require('sinon-chai'));
@@ -75,5 +77,33 @@ describe('AWS Library utilities', function() {
 
     utils.setHttpAgent(undefined, undefined, awsMock);
     expect(awsMock).to.have.been.calledWithMatch({});
+  });
+
+  it('should use https.Agent when bypassProxy is true and no endpoint is set', function() {
+    const awsMock = sinon.stub();
+
+    utils.setHttpAgent({}, true, awsMock);
+    const config = awsMock.firstCall.args[0];
+    expect(config.httpOptions.agent).to.be.an.instanceOf(https.Agent);
+  });
+
+  it('should use https.Agent when bypassProxy is true and endpoint is https', function() {
+    const awsMock = sinon.stub();
+
+    utils.setHttpAgent({ endpoint: { protocol: 'https:' } }, true, awsMock);
+    const config = awsMock.firstCall.args[0];
+    expect(config.httpOptions.agent).to.be.an.instanceOf(https.Agent);
+  });
+
+  it('should use http.Agent when bypassProxy is true and endpoint is http', function() {
+    const awsMock = sinon.stub();
+
+    utils.setHttpAgent({ endpoint: { protocol: 'http:' } }, true, awsMock);
+    const config = awsMock.firstCall.args[0];
+    const agent = config.httpOptions.agent;
+    expect(agent).to.be.an.instanceOf(http.Agent);
+    expect(agent).to.not.be.an.instanceOf(https.Agent);
+    expect(agent.keepAlive).to.equal(true);
+    expect(agent.maxSockets).to.equal(50);
   });
 });
