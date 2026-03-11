@@ -130,4 +130,14 @@ describe('AWS Library utilities', function() {
     const config = awsMock.firstCall.args[0];
     expect(config.httpOptions.agent).to.be.an.instanceOf(https.Agent);
   });
+
+  it('should use http.Agent when bypassProxy is true and endpoint is an uppercase HTTP string', function() {
+    const awsMock = sinon.stub();
+
+    utils.setHttpAgent({ endpoint: 'HTTP://LOCALHOST:8000' }, true, awsMock);
+    const config = awsMock.firstCall.args[0];
+    const agent = config.httpOptions.agent;
+    expect(agent).to.be.an.instanceOf(http.Agent);
+    expect(agent).to.not.be.an.instanceOf(https.Agent);
+  });
 });
