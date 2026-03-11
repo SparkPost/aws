@@ -106,4 +106,28 @@ describe('AWS Library utilities', function() {
     expect(agent.keepAlive).to.equal(true);
     expect(agent.maxSockets).to.equal(50);
   });
+
+  it('should use http.Agent when bypassProxy is true and endpoint is an http string', function() {
+    const awsMock = sinon.stub();
+
+    utils.setHttpAgent({ endpoint: 'http://localhost:8000' }, true, awsMock);
+    const config = awsMock.firstCall.args[0];
+    const agent = config.httpOptions.agent;
+    expect(agent).to.be.an.instanceOf(http.Agent);
+    expect(agent).to.not.be.an.instanceOf(https.Agent);
+    expect(agent.keepAlive).to.equal(true);
+    expect(agent.maxSockets).to.equal(50);
+  });
+
+  it('should use https.Agent when bypassProxy is true and endpoint is an https string', function() {
+    const awsMock = sinon.stub();
+
+    utils.setHttpAgent(
+      { endpoint: 'https://dynamodb.us-east-1.amazonaws.com' },
+      true,
+      awsMock
+    );
+    const config = awsMock.firstCall.args[0];
+    expect(config.httpOptions.agent).to.be.an.instanceOf(https.Agent);
+  });
 });
